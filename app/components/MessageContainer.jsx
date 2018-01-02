@@ -15,3 +15,80 @@ import {setMenuState} from '../actions/pageUI.js'
 import scroll from '../util/scroll.js'
 
 import '../less/MessageContainer.less'
+
+class MessageContainer extends Component {
+    constructor(props){
+        super(props);
+        this.needScroll = true;
+        // 保留上次滚动条所在的高度，用于回滚
+        this.perHeight = 0;
+        this.state = {loading: false, scrollToBottom: false};
+    }
+    @autobind 
+    scrollToBottom(){
+        if(this.msgContent){
+            const msg = this.msgContent;
+            scroll.scrollTo(
+                msg.scrollTop,
+                msg.scrollHeight,
+                300,
+                (val, finish) => {
+                    msg.scrollTop = val;
+                }
+            )
+        }
+    }
+    @autobind
+    handleScroll(e){
+        const target = e.target;
+        if(target !== this.msgContent){
+            return;
+        }
+        if(target.scrollHeight !== target.offsetHeight && target.scrollTop === 0 && !this.state.loading){
+            this.needScroll = false;
+            this.preHeight = target.scrollHeight;
+            this.setState({loading: true});
+            loadRoomHistory()
+            .then(ret => this.setState({loading: false}))
+            .then(ret => {
+                target.scrollTop = target.scrollHeight - this.preHeight;
+            })
+            .catch(err => errPrint(err))
+        }
+        if(target.scrollHeight < target.offsetHeight + target.scrollTop + 10){
+            if (this.state.scrollToBottom) this.setState({scrollToBottom: false});
+            if(!this.needScroll) this.needScroll = true;
+        }
+        if(target.scrollHeight > target.offsetHeight + target.scrollTop + 30 && !this.scrollToBottom){
+            this.needScroll = false;
+        }
+        if(target.scrollHeight > target.offsetHeight + target.scrollTop + 130 && !this.scrollToBottom){
+            this.setState({scrollToBottom: true});
+        }
+    }
+    // 对比一下收到的消息是否为自己发送
+    compareProps(nextProps){
+        const thisProps = this.props,
+              arr = immutable.fromJS([]);
+        const tArr = thisProps.roomInfo.get('histories') || arr,
+              nArr = nextProps.roomInfo.get('histories') || arr;
+        const tSize = tArr.size,
+              nSize = nArr.size,
+              nUser = nextProps.messagesObj.getIn([nArr.last(), 'owner', '_id']);
+        if(1 === nSize - tSize && nUser === thisProps.user.get('_id')) return true;
+        return false;
+    }
+    componentWillReceiveProps(nextProps){
+        const thisProps = this.props,
+              msgContent = this.msgContent || {};
+        const tScrollId = thisProps.msgContainerScroll.get('_id'),
+              nScrollId = nextProps.msgContainerScroll.get('_id');
+        // 判断所有可能改变滚动状态情况
+        // 滚动条未滚动到末尾时不下移
+        if(msgContent.scrollHeight > msgContent.offsetHeight + msgContent.scrollTop + 10) this.needScroll = false;
+        // 外部设定是否下移
+        if(tScrollId !== nScrollId) this.needScroll = nextProps.msgContainerScroll.get('needScroll');
+        // 自己发送消息必然下移
+        if(this.compareProps(nextProps)) this.needScroll = true;
+    }
+}
