@@ -91,4 +91,84 @@ class MessageContainer extends Component {
         // 自己发送消息必然下移
         if(this.compareProps(nextProps)) this.needScroll = true;
     }
+    componentDidUpdate(){
+        if(this.needScroll){
+            const imglist = this.msgContent.querySelectorAll('img');
+            const lastImg = imglist[imglist.length - 1];
+            setTimeout(this.scrollToBottom, 100);
+            lastImg && lastImg.addEventListener('load', this.scrollToBottom);
+        }
+    }
+    render(){
+        const { roomInfo, messagesObj, user, showExpression, showImage } = this.props;
+        const messagesArr = roomInfo.get('histories') || immutable.fromJS([]);
+        const style = {height: `calc(100% - 121px - ${showExpression ? '283px' : '0px'})`};
+        return (
+            <div className = 'MessageContainer' style = {style}>
+                {user.get('onlineState') === 'offline' && <div className = 'MessageContainer-offline'>{language.offline}</div>}
+                <div
+                    className = 'MessageContainer-SignOwl'
+                    onClick = {() => setMenuState(true)}
+                >
+                    <SignOwl isFocus = {this.props.owlState}/>
+                </div>
+                <ReactCSSTransitionGroup 
+                    component = 'div'
+                    transitionName = 'DialogScale'
+                    transitionEnterTimeout = {250}
+                    transitionLeaveTimeout = {250}
+                >
+                    { this.state.scrollToBottom && <ScrollButton handleClick = {this.scrollToBottom}/>}
+                </ReactCSSTransitionGroup>
+                { this.state.loading && <Loading /> }
+                <div className = 'MessageContainer-content' ref = {ref => this.msgContent = ref} onScroll = {this.handleScroll}>
+                    {
+                        messagesArr.map((id) => {
+                            if(!messagesObj.get(id)){
+                                return null;
+                            }
+                            let message = messageMiddle.priToGro(messagesObj.get(id), roomInfo, user);
+                            message = immutable.fromJS(fiora.dealFioraMessage(message.toJS()));
+                            const dir = user.get('_id') === message.getIn(['owner', '_id']) ? 'right' : 'left';
+                            message = message.set('dir', dir);
+                            switch(message.get('type')){
+                                case 'text': {
+                                    return <TextMessage 
+                                        content = {message}
+                                        key = {`message-${message.get('_id')}`}
+                                    />;
+                                }
+                                case 'image': {
+                                    return <ImageMessage 
+                                        content = {message}
+                                        showImage = {showImage}
+                                        key = {`message-${message.get('_id')}`}
+                                    />;
+                                }
+                                case 'file': {
+                                    return <FileMessage 
+                                        content = {message}
+                                        key = {`message-${message.get('_id')}`}
+                                    />;
+                                }
+                                default: return null;
+                            }
+                        })
+                    }
+                </div>
+                <div className = 'MessageContainer-background'></div>
+            </div>
+        );
+    }
 }
+
+// 下滑至底部按钮
+function ScrollButton(props){
+    return (
+        <div className = 'MessageContainer-ScrollButton' onClick = {props.handleClick}>
+            <i className = 'icon'>&#xe60d;</i>
+        </div>
+    )
+}
+
+export default MessageContainer;
