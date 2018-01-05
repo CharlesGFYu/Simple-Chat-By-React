@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
 
-class DelayAnimation extends Component {
+class DelayedAnimation extends Component {
     constructor(props){
         super(props);
         this.state = {isShow: false};
@@ -27,4 +27,4 @@ class DelayAnimation extends Component {
     }
 }
 
-export default DelayAnimation;
+export default DelayedAnimation;
