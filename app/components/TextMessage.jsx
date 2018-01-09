@@ -14,7 +14,7 @@ function replaceContent(content){
                            .replace(/\"/g, '&quot;')
                            .replace(/</g, '&lt;')
                            .replace(/>/g, '&gt;')
-                           .replace(/\'/g, '&apos;');
+                           .replace(/\'/g, /*'&apos;'(IE不支持)*/'&#39;');   //htmlEncode
     repContent = repContent.replace(regExp, r => `<img src="images/expressions/${r.match(/[^#()]+/)[0]}.png" alt="${r}" onerror="this.style.display=\'none\'"/>`);
     repContent = repContent.replace(regLink, (r) => {
         if(regImg.test(r)){
