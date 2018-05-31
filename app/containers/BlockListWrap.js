@@ -7,8 +7,7 @@ import language from '../config/language.js'
 import {errPrint} from '../actions/combin.js'
 import {getBlockList} from '../actions/user.js'
 
-
-const BlockListWrap; = (itemComponent) => class extends Component {
+const BlockListWrap = (itemComponent) => class extends Component {
     constructor(props){
         super(props);
         this.state = {blocks: []};
